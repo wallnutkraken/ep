@@ -1,0 +1,9 @@
+#binary files
+*.exe
+ep/ep
+
+#Test files
+*_test.go
+
+#idea files
+.idea

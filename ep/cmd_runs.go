@@ -8,6 +8,7 @@ import (
 	"github.com/wallnutkraken/ep"
 	"sync"
 	"strconv"
+	"github.com/wallnutkraken/ep/ep/version"
 )
 
 var commands []*command = []*command{
@@ -59,6 +60,11 @@ Podcasts may be added again after removal, however, with the same tag.
 
 Usage: ep remove [tag]`,
 		Run: remove,
+	}, &command{
+		UsageLine:"version",
+		Short:"Prints the version of ep",
+		Long:"Do you really need a long explaination of what 'version' does?",
+		Run:ver,
 	},
 }
 
@@ -239,4 +245,8 @@ func remove(args []string) {
 	}
 
 	fmt.Printf("Successfully removed podcast [%s]\n", p.Tag)
+}
+
+func ver(args []string) {
+	fmt.Printf("ep version %s\n", version.String())
 }

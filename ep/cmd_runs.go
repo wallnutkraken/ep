@@ -50,6 +50,15 @@ then ep will update that specific podcast.`,
 "ep play [tag] [episode]" will play the specific episode for the podcast corresponding
 to [tag], to view a list of episodes for a podcast use "ep list [tag]"`,
 		Run:play,
+	}, &command{
+		UsageLine:"remove",
+		Short:"Removes the selected podcast from ep's memory",
+		Long:`
+"remove" can be used to remove a podcast from ep's memory. This operation cannot be undone.
+Podcasts may be added again after removal, however, with the same tag.
+
+Usage: ep remove [tag]`,
+		Run: remove,
 	},
 }
 
@@ -209,4 +218,25 @@ func playBack(episode ep.Episode) {
 		fmt.Println("playback error:", err.Error())
 		os.Exit(1)
 	}
+}
+
+func remove(args []string) {
+	if len(args) == 0 {
+		fmt.Println("You need to provide a tag for the podcast you wish to remove")
+		return
+	}
+
+	p, err := ep.GetPodcast(args[0])
+	if err != nil {
+		fmt.Println("error:", err.Error())
+		return
+	}
+
+	err = p.Remove()
+	if err != nil {
+		fmt.Println("remove error:", err.Error())
+		return
+	}
+
+	fmt.Printf("Successfully removed podcast [%s]\n", p.Tag)
 }

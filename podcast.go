@@ -111,3 +111,8 @@ func (p *Podcast) UpdateEpisodes() error {
 	p.EpisodicItems = episodes
 	return nil
 }
+
+// Remove physically removes the podcast from the drive
+func (p *Podcast) Remove() error {
+	return os.Remove(feedsDir + dir_seperator + p.Tag)
+}

@@ -13,10 +13,6 @@ import (
 	"time"
 )
 
-const (
-	bufferSize = 0x2000
-)
-
 func Stream(episode Episode) error {
 	cleanURL := strings.Trim(episode.URL, " ")
 	ext, err := getExtension(cleanURL)

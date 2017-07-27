@@ -121,6 +121,7 @@ func list(args []string) {
 func update(args []string) {
 	/* Func to actually update and write if failed */
 	updateP := func(p ep.Podcast, wg *sync.WaitGroup) {
+		oldEpCount := len(p.EpisodicItems)
 		upErr := p.UpdateEpisodes()
 		if upErr != nil {
 			fmt.Println("failed updating tag:", p.Tag, "error:", upErr.Error())
@@ -133,7 +134,10 @@ func update(args []string) {
 			return
 		}
 
-		fmt.Printf("Successfully updated podcast [%s] %s\n", p.Tag, p.Name)
+		newItemCount := len(p.EpisodicItems) - oldEpCount
+
+		fmt.Printf("Successfully updated podcast [%s] %s (%d new items)\n", p.Tag, p.Name,
+			newItemCount)
 		if wg != nil {
 			wg.Add(-1)
 		}

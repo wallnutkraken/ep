@@ -2,14 +2,15 @@ package ep
 
 import (
 	"errors"
-	"strings"
-	"net/http"
-	"github.com/faiface/beep/wav"
 	"github.com/faiface/beep"
-	"io"
+	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
-	"time"
+	"github.com/faiface/beep/wav"
+	"io"
+	"net/http"
+	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -60,13 +61,14 @@ func getExtension(url string) (string, error) {
 	if len(sections) == 0 {
 		return "", errors.New("URL has no sections")
 	}
-	dotted := strings.Split(sections[len(sections) - 1], ".")
+	dotted := strings.Split(sections[len(sections)-1], ".")
 	if len(dotted) == 0 {
 		return "", errors.New("No extension can be found")
 	}
-	return dotted[len(dotted) - 1], nil
+	return dotted[len(dotted)-1], nil
 }
 
-var audioDecoders = map[string]func(io.ReadCloser) (beep.StreamSeekCloser, beep.Format, error) {
-	"wav":wav.Decode,
+var audioDecoders = map[string]func(io.ReadCloser) (beep.StreamSeekCloser, beep.Format, error){
+	"wav": wav.Decode,
+	"mp3": mp3.Decode,
 }

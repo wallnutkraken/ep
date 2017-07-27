@@ -2,10 +2,16 @@
 
 A console utility to store and play podcasts.
 
-# State
+# Getting it
 
-Does not work.
+`ep` requires Go. Once Go is set up, use the following command:
 
-# Issues
+```
+go get github.com/wallnutkraken/ep/ep
+```
+This will download and build `ep` for your Operating System and place it in your `$GOPATH/bin` directory.
+As of Go 1.8, the default `$GOROOT` is `$HOME/go`.
 
-The actual audio bit in [play.go](play.go)
+# Usage
+
+All information on using `ep` can be find by simply calling `ep`

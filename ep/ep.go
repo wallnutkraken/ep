@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	_ "github.com/wallnutkraken/ep"
+	"github.com/wallnutkraken/ep/ep/cmds"
 )
 
 func main() {
@@ -14,11 +15,11 @@ func main() {
 
 	if len(args) > 0 {
 		if args[0] == "help" {
-			help(args[1:])
+			cmds.Help(args[1:])
 		}
 
 		foundCommand := false
-		for _, cmd := range commands {
+		for _, cmd := range cmds.Commands {
 			if cmd.UsageLine == args[0] {
 				foundCommand = true
 				if cmd.CanRun() {
@@ -33,6 +34,6 @@ func main() {
 			fmt.Println("No such command can be found")
 		}
 	} else {
-		help(args)
+		cmds.Help(args)
 	}
 }

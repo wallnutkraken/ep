@@ -4,7 +4,7 @@ import "testing"
 
 func TestCantPlayUnsupportedFormat(t *testing.T) {
 	fakeUrl := "fake/url/file.examp2225645le"
-	err := Stream(Episode{URL:fakeUrl})
+	err := StartStreaming(Episode{URL: fakeUrl})
 	if err == nil {
 		t.Log("No error thrown for bad url:", fakeUrl)
 		t.Fail()

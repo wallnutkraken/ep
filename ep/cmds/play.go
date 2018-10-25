@@ -7,7 +7,7 @@ import (
 	"unicode"
 
 	"github.com/wallnutkraken/ep"
-	"github.com/zetamatta/go-getch"
+	"github.com/wallnutkraken/ep/getchar"
 )
 
 func Play(args []string) {
@@ -66,7 +66,7 @@ func playBack(episode ep.Episode) {
 func controls(c ep.Controller, onDone chan bool) {
 	exit := false
 	for !exit {
-		key := unicode.ToLower(getch.Rune())
+		key := unicode.ToLower(getchar.Rune())
 		switch key {
 		case 'q':
 			exit = true

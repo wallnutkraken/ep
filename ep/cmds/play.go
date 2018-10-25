@@ -2,10 +2,11 @@ package cmds
 
 import (
 	"fmt"
-	"github.com/wallnutkraken/ep"
-	"strconv"
 	"os"
+	"strconv"
 	"unicode"
+
+	"github.com/wallnutkraken/ep"
 	"github.com/zetamatta/go-getch"
 )
 
@@ -20,7 +21,7 @@ func Play(args []string) {
 			fmt.Println("error:", err.Error())
 			return
 		}
-		playBack(p.EpisodicItems[len(p.EpisodicItems) - 1])
+		playBack(p.EpisodicItems[len(p.EpisodicItems)-1])
 	default:
 		/* Play specific episode */
 		p, err := ep.GetPodcast(args[0])
@@ -38,7 +39,7 @@ func Play(args []string) {
 			return
 		}
 		/* Remember to do -1 due to us adding +1 when we show episodes in list */
-		playBack(p.EpisodicItems[num - 1])
+		playBack(p.EpisodicItems[num-1])
 	}
 }
 
@@ -51,25 +52,30 @@ func playBack(episode ep.Episode) {
 
 	fmt.Printf("Name: %s\n", episode.Title)
 	fmt.Println("Beginning playback. Press 'P' to pause/resume. Press Q to exit.")
+	fmt.Println("Use +/- to control the volume.")
 
 	/* Start controls listener goroutine */
 	go controls(control, onDone)
 
 	/* Block until onDone has something sent through it or is closed. */
 	/* Expecting close if user-closed. */
-	<- onDone
+	<-onDone
 }
 
 func controls(c ep.Controller, onDone chan bool) {
 	exit := false
 	for !exit {
 		key := unicode.ToLower(getch.Rune())
-		if key == 'q' {
+		switch key {
+		case 'q':
 			exit = true
 			close(onDone)
-		} else if key == 'p' {
+		case 'p':
 			c.TogglePaused()
+		case '+':
+			c.VolumeUp()
+		case '-':
+			c.VolumeDown()
 		}
 	}
 }
-

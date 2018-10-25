@@ -2,14 +2,22 @@ package ep
 
 import (
 	"errors"
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/mp3"
-	"github.com/faiface/beep/speaker"
-	"github.com/faiface/beep/wav"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/mp3"
+	"github.com/faiface/beep/speaker"
+	"github.com/faiface/beep/wav"
+	"github.com/itchyny/volume-go"
+	"github.com/wallnutkraken/ep/progress"
+)
+
+const (
+	volumeIncrement = 5
 )
 
 func StartStreaming(episode Episode) (chan bool, Controller, error) {
@@ -48,7 +56,14 @@ func StartStreaming(episode Episode) (chan bool, Controller, error) {
 
 	speaker.Play(beep.Seq(control, beep.Callback(callback)))
 
-	return done, ctrlWrapper{control}, nil
+	ctrl := ctrlWrapper{
+		controls: control,
+		progBar: progress.Bar{
+			Increment: 1,
+		},
+	}
+	ctrl.progBar.Value = ctrl.getVolume()
+	return done, ctrl, nil
 }
 
 func getExtension(url string) (string, error) {
@@ -70,6 +85,7 @@ var audioDecoders = map[string]func(io.ReadCloser) (beep.StreamSeekCloser, beep.
 
 type ctrlWrapper struct {
 	controls *beep.Ctrl
+	progBar  progress.Bar
 }
 
 func (c ctrlWrapper) TogglePaused() {
@@ -78,6 +94,40 @@ func (c ctrlWrapper) TogglePaused() {
 	speaker.Unlock()
 }
 
+func (c ctrlWrapper) getVolume() int {
+	current, err := volume.GetVolume()
+	if err != nil {
+		fmt.Printf("Error getting volume: [%s]", err.Error())
+	}
+	return current
+}
+
+func (c ctrlWrapper) VolumeUp() {
+	next := c.getVolume()
+	if next+volumeIncrement > 100 {
+		next = 100
+	} else {
+		next += volumeIncrement
+	}
+	volume.SetVolume(next)
+	c.progBar.Value = c.getVolume()
+	c.progBar.Draw()
+}
+
+func (c ctrlWrapper) VolumeDown() {
+	next := c.getVolume()
+	if next-volumeIncrement < 0 {
+		next = 0
+	} else {
+		next -= volumeIncrement
+	}
+	volume.SetVolume(next)
+	c.progBar.Value = c.getVolume()
+	c.progBar.Draw()
+}
+
 type Controller interface {
 	TogglePaused()
+	VolumeUp()
+	VolumeDown()
 }

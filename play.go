@@ -126,8 +126,13 @@ func (c ctrlWrapper) VolumeDown() {
 	c.progBar.Draw()
 }
 
+func (c ctrlWrapper) DrawVolume() {
+	c.progBar.Draw()
+}
+
 type Controller interface {
 	TogglePaused()
 	VolumeUp()
 	VolumeDown()
+	DrawVolume()
 }

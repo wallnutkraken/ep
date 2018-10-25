@@ -53,6 +53,7 @@ func playBack(episode ep.Episode) {
 	fmt.Printf("Name: %s\n", episode.Title)
 	fmt.Println("Beginning playback. Press 'P' to pause/resume. Press Q to exit.")
 	fmt.Println("Use +/- to control the volume.")
+	control.DrawVolume()
 
 	/* Start controls listener goroutine */
 	go controls(control, onDone)

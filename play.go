@@ -20,18 +20,17 @@ const (
 	volumeIncrement = 5
 )
 
+// StartStreaming retrieves the file stream for the given podcast episode and starts audio playback as the audio file is streamed.
 func StartStreaming(episode Episode) (chan bool, Controller, error) {
 	cleanURL := strings.Trim(episode.URL, " ")
-	ext, err := getExtension(cleanURL)
-	if err != nil {
-		return nil, nil, err
-	}
+	ext := getExtension(cleanURL)
 
 	decodeFunc, ok := audioDecoders[ext]
 	if !ok {
 		return nil, nil, errors.New("There is no handler for ." + ext + " files")
 	}
 
+	// Call GET on the episode
 	resp, err := http.Get(cleanURL)
 	if err != nil {
 		return nil, nil, err
@@ -66,20 +65,35 @@ func StartStreaming(episode Episode) (chan bool, Controller, error) {
 	return done, ctrl, nil
 }
 
-func getExtension(url string) (string, error) {
-	sections := strings.Split(url, "/")
-	if len(sections) == 0 {
-		return "", errors.New("URL has no sections")
+func getExtension(url string) string {
+	lastSection := removeBeforeLast(url, "/")
+	extensionFull := removeBeforeLast(lastSection, ".")
+
+	// Remove any potential URL Queries
+	ext := removeAfterFirst(extensionFull, "?")
+
+	return ext
+}
+
+// removeBeforeLast splits the s string via the splitter and removes all the elements before the last one
+func removeBeforeLast(s, splitter string) string {
+	splitElements := strings.Split(s, splitter)
+	return splitElements[len(splitElements)-1]
+}
+
+// removeAfterFirst returns the string before the first instance of the splitter. If the splitter isn't found in the
+// string, the given string is returned unchanged.
+func removeAfterFirst(s, splitter string) string {
+	index := strings.Index(s, splitter)
+	if index == -1 {
+		// Could not find it, just return the string itself
+		return s
 	}
-	dotted := strings.Split(sections[len(sections)-1], ".")
-	if len(dotted) == 0 {
-		return "", errors.New("No extension can be found")
-	}
-	return dotted[len(dotted)-1], nil
+	return s[:index]
 }
 
 var audioDecoders = map[string]func(io.ReadCloser) (beep.StreamSeekCloser, beep.Format, error){
-	"wav": wav.Decode,
+	"wav": func(v io.ReadCloser) (beep.StreamSeekCloser, beep.Format, error) { return wav.Decode(v) },
 	"mp3": mp3.Decode,
 }
 

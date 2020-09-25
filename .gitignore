@@ -2,5 +2,6 @@
 *.exe
 ep/ep
 
-#idea files
+#IDE files
 .idea
+.vscode

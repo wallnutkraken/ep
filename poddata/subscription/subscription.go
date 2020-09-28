@@ -17,11 +17,12 @@ var (
 
 // Subscription is the data type for podcast subscriptions
 type Subscription struct {
-	gorm.Model
-	Name     string
-	RSSURL   string    `gorm:"unique"`
-	Tag      string    `gorm:"unique"`
-	Episodes []Episode `gorm:"foreignKey:SubscriptionID"`
+	ID        uint `gorm:"primarykey"`
+	UpdatedAt time.Time
+	Name      string
+	RSSURL    string    `gorm:"unique"`
+	Tag       string    `gorm:"unique"`
+	Episodes  []Episode `gorm:"foreignKey:SubscriptionID"`
 }
 
 // Episode contains the information about a single podcast episode
@@ -63,7 +64,7 @@ func (s SubHandler) NewSubscription(sub *Subscription) error {
 // GetSubscriptions returns an array of every subscription
 func (s SubHandler) GetSubscriptions() ([]Subscription, error) {
 	subs := []Subscription{}
-	if err := s.db.Find(&subs).Error; err != nil {
+	if err := s.db.Preload(clause.Associations).Find(&subs).Error; err != nil {
 		return subs, errors.WithMessage(err, "Failed retrieving all subscriptions")
 	}
 	return subs, nil
@@ -72,7 +73,7 @@ func (s SubHandler) GetSubscriptions() ([]Subscription, error) {
 // GetSubscriptionByTag returns a subscription by its tag
 func (s SubHandler) GetSubscriptionByTag(tag string) (Subscription, error) {
 	sub := Subscription{}
-	if err := s.db.Where("tag = ?", tag).First(&sub).Error; err != nil {
+	if err := s.db.Preload(clause.Associations).Where("tag = ?", tag).First(&sub).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return sub, ErrSubNotFound
 		}
@@ -109,7 +110,10 @@ func (s SubHandler) AddEpisodes(sub Subscription, eps []Episode) error {
 	if err := s.db.Save(&eps).Error; err != nil {
 		return errors.WithMessage(err, "Failed saving new episodes")
 	}
-	return nil
+	// And change the podcast's UpdatedAt time
+	sub.UpdatedAt = time.Now()
+
+	return s.UpdateSubscription(sub)
 }
 
 // RemoveEpisodes removes the given episodes from the database

@@ -33,6 +33,13 @@ func init() {
 	rootCmd.AddCommand(addCmd)
 }
 
+func toLowerArray(v []string) []string {
+	for index, elem := range v {
+		v[index] = strings.ToLower(elem)
+	}
+	return v
+}
+
 func addPodcast(cmd *cobra.Command, args []string) {
 	tag := strings.ToLower(args[0])
 	url := args[1]

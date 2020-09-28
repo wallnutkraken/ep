@@ -31,6 +31,7 @@ func init() {
 }
 
 func syncPodcasts(cmd *cobra.Command, args []string) {
+	args = toLowerArray(args)
 	toSync := []subscription.Subscription{}
 	if len(args) == 0 {
 		// Sync everything

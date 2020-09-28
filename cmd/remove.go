@@ -30,6 +30,7 @@ func init() {
 }
 
 func removePodcast(cmd *cobra.Command, args []string) {
+	args = toLowerArray(args)
 	// Get podcasts by tags
 	deleteList, err := data.Subscriptions().GetSubscriptionsByTags(args...)
 	if err != nil {

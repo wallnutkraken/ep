@@ -111,3 +111,19 @@ func (s SubHandler) AddEpisodes(sub Subscription, eps []Episode) error {
 	}
 	return nil
 }
+
+// RemoveEpisodes removes the given episodes from the database
+func (s SubHandler) RemoveEpisodes(eps []Episode) error {
+	if err := s.db.Delete(eps).Error; err != nil {
+		return errors.WithMessagef(err, "Failed removing [%d] episodes", len(eps))
+	}
+	return nil
+}
+
+// RemoveSubscriptions removes the given subscriptions from the database
+func (s SubHandler) RemoveSubscriptions(subs []Subscription) error {
+	if err := s.db.Delete(subs).Error; err != nil {
+		return errors.WithMessagef(err, "Failed removing [%d] subscriptions", len(subs))
+	}
+	return nil
+}

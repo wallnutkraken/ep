@@ -25,9 +25,6 @@ var rootCmd = &cobra.Command{
 	Use:   "ep",
 	Short: "CLI-based podcast streamer.",
 	Long:  `Streams podcasts from RSS feeds`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -40,21 +37,13 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	cobra.OnInitialize(initDatabase)
 
 	rootCmd.PersistentFlags().StringVar(&dbPath, "dbpath", "", "Path to the ep database file")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
+// initDatabase loads the database object for use by ep command functions
+func initDatabase() {
 	if dbPath == "" {
 		// No path provided, use the default path
 		dbPath = getDefaultDBPath()

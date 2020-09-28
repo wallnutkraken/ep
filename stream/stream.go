@@ -3,14 +3,17 @@
 package stream
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"path"
 	"strings"
 
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/mp3"
+	"github.com/faiface/beep/wav"
+	"github.com/wallnutkraken/ep/player"
+
 	"github.com/pkg/errors"
-	"github.com/wallnutkraken/ep/stream/streamtype"
 )
 
 // File contains the information of the file to be streamed, and methods to begin streaming
@@ -20,6 +23,11 @@ type File struct {
 	mimetype  string
 	extension string
 }
+
+var (
+	// ErrMediaTypeUnsupported is the error for an unsupported media type being detected
+	ErrMediaTypeUnsupported = errors.New("This media type is not supported by ep, yet")
+)
 
 // FromURL creates a stream File info object from the given file URL
 func FromURL(url string) File {
@@ -46,7 +54,6 @@ func (f *File) GetStream() (io.ReadCloser, error) {
 
 	// Get the mime type and extension
 	f.mimetype = resp.Header.Get("Content-Type")
-	fmt.Printf("[%s]\n", f.mimetype)
 	filename := path.Base(resp.Request.URL.Path)
 	filenameParts := strings.Split(filename, ".")
 	f.extension = filenameParts[len(filenameParts)-1]
@@ -55,37 +62,39 @@ func (f *File) GetStream() (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-// GetType returns the file type for the stream. This function will only return anything meaningful after GetStream is called.
-// Currently the supported types are:
-// MP3
-// WAV
-func (f File) GetType() string {
+// GetDecoder returns the audio decoder function for the data type detected. This function first
+// tries to detect the data type, then returns a decode function or an error.
+func (f File) GetDecoder() (player.DecodeFunc, error) {
 	if f.mimetype != "" {
 		return f.typeFromMIME()
 	}
 	return f.typeFromExtension()
 }
 
-func (f File) typeFromMIME() string {
+func wavDecoder(rc io.ReadCloser) (s beep.StreamSeekCloser, format beep.Format, err error) {
+	return wav.Decode(rc)
+}
+
+func (f File) typeFromMIME() (player.DecodeFunc, error) {
 	switch strings.ToLower(f.mimetype) {
 	case "audio/mpeg":
 		fallthrough
 	case "audio/mp3":
-		return streamtype.MP3
+		return mp3.Decode, nil
 	case "audio/wav":
-		return streamtype.WAV
+		return wavDecoder, nil
 	default:
-		return streamtype.Unknown
+		return nil, ErrMediaTypeUnsupported
 	}
 }
 
-func (f File) typeFromExtension() string {
+func (f File) typeFromExtension() (player.DecodeFunc, error) {
 	switch strings.ToLower(f.extension) {
 	case "mp3":
-		return streamtype.MP3
+		return mp3.Decode, nil
 	case "wav":
-		return streamtype.WAV
+		return wavDecoder, nil
 	default:
-		return streamtype.Unknown
+		return nil, ErrMediaTypeUnsupported
 	}
 }

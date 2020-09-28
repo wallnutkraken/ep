@@ -2,6 +2,10 @@
 package subscription
 
 import (
+	"time"
+
+	"gorm.io/gorm/clause"
+
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
@@ -15,7 +19,7 @@ var (
 type Subscription struct {
 	gorm.Model
 	Name     string
-	RSSURL   string
+	RSSURL   string    `gorm:"unique"`
 	Tag      string    `gorm:"unique"`
 	Episodes []Episode `gorm:"foreignKey:SubscriptionID"`
 }
@@ -25,7 +29,8 @@ type Episode struct {
 	ID             uint `gorm:"primarykey"`
 	SubscriptionID int
 	Title          string
-	URL            string
+	URL            string `gorm:"unique"`
+	PublishedAt    time.Time
 }
 
 // AllTypes returns all the database types defined in this package
@@ -74,4 +79,35 @@ func (s SubHandler) GetSubscriptionByTag(tag string) (Subscription, error) {
 		return sub, errors.WithMessagef(err, "Failed getting subscription by tag [%s]", tag)
 	}
 	return sub, nil
+}
+
+// GetSubscriptionsByTags returns all subscribtions with the given tags
+func (s SubHandler) GetSubscriptionsByTags(tags ...string) ([]Subscription, error) {
+	subs := []Subscription{}
+	if err := s.db.Preload(clause.Associations).Where("tag IN (?)", tags).Find(&subs).Error; err != nil {
+		return subs, errors.WithMessagef(err, "Failed getting subscriptions by tags [%v]", tags)
+	}
+	return subs, nil
+}
+
+// UpdateSubscription saves changes to this subscription to the database
+func (s SubHandler) UpdateSubscription(sub Subscription) error {
+	if err := s.db.Save(&sub).Error; err != nil {
+		return errors.WithMessagef(err, "Failed updating subscription [%s/%s]", sub.Tag, sub.Name)
+	}
+
+	return nil
+}
+
+// AddEpisodes adds the given episodes to the database
+func (s SubHandler) AddEpisodes(sub Subscription, eps []Episode) error {
+	// Add subID to the episodes
+	for index := range eps {
+		eps[index].SubscriptionID = int(sub.ID)
+	}
+	// Save them all
+	if err := s.db.Save(&eps).Error; err != nil {
+		return errors.WithMessage(err, "Failed saving new episodes")
+	}
+	return nil
 }

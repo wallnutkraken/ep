@@ -3,6 +3,7 @@
 package podsync
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/mmcdole/gofeed"
@@ -25,7 +26,7 @@ func GetPodcastFromRSS(rssURL, tag string) (subscription.Subscription, error) {
 		Episodes: []subscription.Episode{},
 	}
 	// Get all the current episodes for this podcast
-	if err := updateEpisodes(&sub, feed); err != nil {
+	if _, err := updateEpisodes(&sub, feed); err != nil {
 		return sub, errors.WithMessage(err, "Failed getting podcast episodes")
 	}
 
@@ -33,12 +34,15 @@ func GetPodcastFromRSS(rssURL, tag string) (subscription.Subscription, error) {
 }
 
 // updateEpisodes does the gruntwork for UpdateEpisodes, it works with the rss feed given instead of parsing it itself
-func updateEpisodes(sub *subscription.Subscription, feed *gofeed.Feed) error {
+func updateEpisodes(sub *subscription.Subscription, feed *gofeed.Feed) (int, error) {
 	episodes := []subscription.Episode{}
+
 	// Reverse loop, to start from earliest items
 	for index := len(feed.Items) - 1; index > 0; index-- {
 		item := feed.Items[index]
 		episode := subscription.Episode{}
+		episode.Title = item.Title
+		episode.PublishedAt = *item.PublishedParsed
 
 		// Find the actual URL to the audio
 		for _, encl := range item.Enclosures {
@@ -50,21 +54,48 @@ func updateEpisodes(sub *subscription.Subscription, feed *gofeed.Feed) error {
 		}
 		episodes = append(episodes, episode)
 	}
+	// Sort the episodes by publication date
+	sort.Slice(episodes, func(i, j int) bool {
+		return episodes[i].PublishedAt.Unix() < episodes[j].PublishedAt.Unix()
+	})
 
 	// Assign the newly synced episodes to the subscription and return
-	// TODO: check existing episodes and don't replace any (to avoid db mishaps)
-	sub.Episodes = episodes
-	return nil
+	var newEpisodeCount int
+	if len(sub.Episodes) == 0 {
+		sub.Episodes = episodes
+		newEpisodeCount = len(episodes)
+	} else {
+		// There are new episodes, add the new ones, don't change the existing ones
+		// First, get the index of the last shared element
+		lastSharedIndex := indexOfLastSharedEpisode(sub.Episodes, episodes)
+		// Combine existing episodes with the episodes after the last shared one
+		sub.Episodes = append(sub.Episodes, episodes[lastSharedIndex+1:]...)
+		newEpisodeCount = len(episodes[lastSharedIndex+1:])
+	}
+	return newEpisodeCount, nil
 }
 
 // UpdateEpisodes takes a pointer to a Subscription object and populates its Episodes element
-// with the latest episodes for this podcast
-func UpdateEpisodes(sub *subscription.Subscription) error {
+// with the latest episodes for this podcast, and returns how many new episodes were retrieved.
+func UpdateEpisodes(sub *subscription.Subscription) (int, error) {
 	// Get the RSS Data
 	rss := gofeed.NewParser()
 	feed, err := rss.ParseURL(sub.RSSURL)
 	if err != nil {
-		return errors.WithMessagef(err, "Failed reading RSS feed at [%s]", sub.RSSURL)
+		return 0, errors.WithMessagef(err, "Failed reading RSS feed at [%s]", sub.RSSURL)
 	}
 	return updateEpisodes(sub, feed)
+}
+
+// indexOfLastShared episode returns the index in the newEpisodes array of the last element that is shared between it and
+// the newEpisodes array. Returns -1 if there is no match
+func indexOfLastSharedEpisode(originalEpisodes, newEpisodes []subscription.Episode) int {
+	lastOriginalURL := originalEpisodes[len(originalEpisodes)-1].URL
+	for index := len(newEpisodes) - 1; index > 0; index-- {
+		if newEpisodes[index].URL == lastOriginalURL {
+			// Found the match, return the index
+			return index
+		}
+	}
+	return -1
 }

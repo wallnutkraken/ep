@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/wallnutkraken/ep/pprinter"
+
 	"github.com/wallnutkraken/ep/poddata/subscription"
 
 	"github.com/sirupsen/logrus"
@@ -63,7 +65,7 @@ func addPodcast(cmd *cobra.Command, args []string) {
 		logrus.Fatalf("Error getting podcast feed: %s", err.Error())
 	}
 	// Print out the podcast's episodes here
-	// TODO: print out the episode list, for now, just say "Added and save to db"
+	pprinter.PrintEpisodeList(sub.Episodes)
 
 	if err := data.Subscriptions().NewSubscription(&sub); err != nil {
 		logrus.Fatalf("Failed saving subscription for tag [%s] and url [%s]: %s", tag, url, err.Error())

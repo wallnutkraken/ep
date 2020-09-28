@@ -3,15 +3,21 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+
+	"github.com/wallnutkraken/ep/poddata"
 
 	"github.com/shibukawa/configdir"
 	"github.com/sirupsen/logrus"
-
 	"github.com/spf13/cobra"
 )
 
 var (
-	cfgFile string
+	dbPath string
+	// data is defined here in cmd so that any command will have it readily initialized for
+	// their own tasks. It's specifically loaded on application start instead of at a later point
+	// to allow for the "dbpath" argument to be used.
+	data poddata.Data
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -40,7 +46,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "path to the config file")
+	rootCmd.PersistentFlags().StringVar(&dbPath, "dbpath", "", "Path to the ep database file")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -49,10 +55,25 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	if dbPath == "" {
+		// No path provided, use the default path
+		dbPath = getDefaultDBPath()
+	}
+	// Start the database
+	db, err := poddata.New(dbPath)
+	if err != nil {
+		logrus.Fatal(err.Error())
+	}
+	data = db
+}
+
+func getDefaultDBPath() string {
 	cfg := configdir.New("", "")
 	configFolders := cfg.QueryFolders(configdir.Global)
 	if len(configFolders) == 0 {
 		logrus.Fatal("Could not find any configuration folders... what are you running this on?")
 	}
-	// TODO: config not done
+	configDir := configFolders[0].Path
+	// Add the filename onto the directory
+	return filepath.Join(configDir, "epdata.sqlite")
 }

@@ -70,21 +70,23 @@ func syncPodcasts(cmd *cobra.Command, args []string) {
 		go func(sub *subscription.Subscription, waiter *sync.WaitGroup) {
 			// Get an updated episode list
 			var err error
-			var count int
-			if count, err = podsync.UpdateEpisodes(sub); err != nil {
+			newEpisodes := []subscription.Episode{}
+			if newEpisodes, err = podsync.GetNewEpisodes(*sub); err != nil {
 				logrus.WithError(err).Errorf("Failed updating podcast [%s]", sub.Tag)
 				waiter.Done()
 				return
 			}
-			if count != 0 {
+			if len(newEpisodes) != 0 {
 				// Add the newest episodes to the database. First, get the slice that's new.
-				newEpisodes := sub.Episodes[len(sub.Episodes)-count:]
 				if err := data.Subscriptions().AddEpisodes(*sub, newEpisodes); err != nil {
 					logrus.WithError(err).Errorf("Failed saving newly retrieved episodes for [%s]", sub.Name)
 				} else {
-					fmt.Printf("Updated podcast [%s/%s] with %d new episodes", sub.Tag, sub.Name, count)
+					fmt.Printf("Updated podcast [%s/%s] with %d new episodes", sub.Tag, sub.Name, len(newEpisodes))
 				}
 			}
+			// And add the episodes to the subscription in memory
+			sub.Episodes = append(sub.Episodes, newEpisodes...)
+
 			waiter.Done()
 		}(&subToSync, wg)
 	}

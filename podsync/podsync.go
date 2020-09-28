@@ -26,15 +26,17 @@ func GetPodcastFromRSS(rssURL, tag string) (subscription.Subscription, error) {
 		Episodes: []subscription.Episode{},
 	}
 	// Get all the current episodes for this podcast
-	if _, err := updateEpisodes(&sub, feed); err != nil {
+	episodes, err := getNewEpisodes(sub, feed)
+	if err != nil {
 		return sub, errors.WithMessage(err, "Failed getting podcast episodes")
 	}
+	sub.Episodes = episodes
 
 	return sub, nil
 }
 
-// updateEpisodes does the gruntwork for UpdateEpisodes, it works with the rss feed given instead of parsing it itself
-func updateEpisodes(sub *subscription.Subscription, feed *gofeed.Feed) (int, error) {
+// getNewEpisodes does the gruntwork for GetNewEpisodes, it works with the rss feed given instead of parsing it itself
+func getNewEpisodes(sub subscription.Subscription, feed *gofeed.Feed) ([]subscription.Episode, error) {
 	episodes := []subscription.Episode{}
 
 	// Reverse loop, to start from earliest items
@@ -59,32 +61,28 @@ func updateEpisodes(sub *subscription.Subscription, feed *gofeed.Feed) (int, err
 		return episodes[i].PublishedAt.Unix() < episodes[j].PublishedAt.Unix()
 	})
 
-	// Assign the newly synced episodes to the subscription and return
-	var newEpisodeCount int
+	// Figure out which episodes are new
 	if len(sub.Episodes) == 0 {
 		sub.Episodes = episodes
-		newEpisodeCount = len(episodes)
 	} else {
 		// There are new episodes, add the new ones, don't change the existing ones
 		// First, get the index of the last shared element
 		lastSharedIndex := indexOfLastSharedEpisode(sub.Episodes, episodes)
 		// Combine existing episodes with the episodes after the last shared one
-		sub.Episodes = append(sub.Episodes, episodes[lastSharedIndex+1:]...)
-		newEpisodeCount = len(episodes[lastSharedIndex+1:])
+		sub.Episodes = episodes[lastSharedIndex+1:]
 	}
-	return newEpisodeCount, nil
+	return episodes, nil
 }
 
-// UpdateEpisodes takes a pointer to a Subscription object and populates its Episodes element
-// with the latest episodes for this podcast, and returns how many new episodes were retrieved.
-func UpdateEpisodes(sub *subscription.Subscription) (int, error) {
+// GetNewEpisodes retrieves new episodes for the given podcast subscription
+func GetNewEpisodes(sub subscription.Subscription) ([]subscription.Episode, error) {
 	// Get the RSS Data
 	rss := gofeed.NewParser()
 	feed, err := rss.ParseURL(sub.RSSURL)
 	if err != nil {
-		return 0, errors.WithMessagef(err, "Failed reading RSS feed at [%s]", sub.RSSURL)
+		return nil, errors.WithMessagef(err, "Failed reading RSS feed at [%s]", sub.RSSURL)
 	}
-	return updateEpisodes(sub, feed)
+	return getNewEpisodes(sub, feed)
 }
 
 // indexOfLastShared episode returns the index in the newEpisodes array of the last element that is shared between it and

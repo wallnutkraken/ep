@@ -7,6 +7,7 @@ import (
 	"github.com/wallnutkraken/ep/poddata/subscription"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Data is the wrapper struct for our GORM object, and contains methods to interact with the persistent storage.
@@ -17,7 +18,9 @@ type Data struct {
 // New creates a new instance of the Data access object
 func New(confPath string) (Data, error) {
 	// Open gorm with the given data path
-	db, err := gorm.Open(sqlite.Open(confPath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(confPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		return Data{}, errors.WithMessagef(err, "Failed opening sqlite file at [%s]", confPath)
 	}

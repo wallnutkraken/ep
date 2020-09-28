@@ -69,7 +69,7 @@ func getNewEpisodes(sub subscription.Subscription, feed *gofeed.Feed) ([]subscri
 		// First, get the index of the last shared element
 		lastSharedIndex := indexOfLastSharedEpisode(sub.Episodes, episodes)
 		// Combine existing episodes with the episodes after the last shared one
-		sub.Episodes = episodes[lastSharedIndex+1:]
+		episodes = episodes[lastSharedIndex+1:]
 	}
 	return episodes, nil
 }
